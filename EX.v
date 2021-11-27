@@ -4,15 +4,14 @@ module EX(
     input wire rst,
     // input wire flush,
     input wire [`StallBus-1:0] stall,
-
     input wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
-
     output wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
-
+    output wire [`EX_TO_ID_WD-1:0] ex_to_id_bus,
     output wire data_sram_en,
     output wire [3:0] data_sram_wen,
     output wire [31:0] data_sram_addr,
-    output wire [31:0] data_sram_wdata
+    output wire [31:0] data_sram_wdata,
+    output wire inst_is_load
 );
 
     reg [`ID_TO_EX_WD-1:0] id_to_ex_bus_r;
@@ -31,7 +30,8 @@ module EX(
             id_to_ex_bus_r <= id_to_ex_bus;
         end
     end
-
+    
+    wire rf_we2;
     wire [31:0] ex_pc, inst;
     wire [11:0] alu_op;
     wire [2:0] sel_alu_src1;
@@ -43,6 +43,8 @@ module EX(
     wire sel_rf_res;
     wire [31:0] rf_rdata1, rf_rdata2;
     reg is_in_delayslot;
+    
+
 
     assign {
         ex_pc,          // 148:117
@@ -82,7 +84,17 @@ module EX(
     );
 
     assign ex_result = alu_result;
-
+    
+    
+    
+    assign rf_we2 = inst_is_load ? 1'b0 : rf_we;
+    
+    assign ex_to_id_bus = {
+        rf_we2,
+        rf_waddr,
+        ex_result
+    };
+    
     assign ex_to_mem_bus = {
         ex_pc,          // 75:44
         data_ram_en,    // 43
@@ -92,6 +104,15 @@ module EX(
         rf_waddr,       // 36:32
         ex_result       // 31:0
     };
+    
+    
+    assign  data_sram_en = data_ram_en ;
+    assign  data_sram_wen = data_ram_wen;
+    assign  data_sram_addr = ex_result;
+    assign  data_sram_wdata = rf_rdata2;
+    
+    
+    assign inst_is_load = (inst[31:26] == 6'b10_0011) ? 1'b1 : 1'b0;
     
     
 endmodule

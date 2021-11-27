@@ -55,6 +55,8 @@ module IF(
     assign inst_sram_wen = 4'b0;
     assign inst_sram_addr = pc_reg;
     assign inst_sram_wdata = 32'b0;
+    
+    
     assign if_to_id_bus = {
         ce_reg,
         pc_reg
