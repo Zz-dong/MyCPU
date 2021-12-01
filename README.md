@@ -1,5 +1,11 @@
 # MyCPU
 ## 版本更新
+### 2021-12-1 更新
+
+- 通过passpoint 43
+
+- 添加bgez, bgtz, blez, bltz, bltzal, bgezal, jalr 指令
+
 ### 2021-11-28 更新
 
 - 通过passpoint 36
@@ -20,5 +26,6 @@
 
 
 - 添加ori, lui, addiu, beq, subu, jr, jal, addu, sll, or, lw, xor , sw, bne指令
+
 
 

@@ -106,7 +106,7 @@ module EX(
     };
     
     
-    assign  data_sram_en = data_ram_en ;
+    assign  data_sram_en = data_ram_en;
     assign  data_sram_wen = data_ram_wen;
     assign  data_sram_addr = ex_result;
     assign  data_sram_wdata = rf_rdata2;
