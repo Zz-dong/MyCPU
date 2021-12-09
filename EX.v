@@ -5,7 +5,7 @@ module EX(
     // input wire flush,
     input wire [`StallBus-1:0] stall,
     input wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
-    output wire [`EX_TO_MEM_WD-1+2:0] ex_to_mem_bus,
+    output wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
     output wire [`EX_TO_ID_WD-1:0] ex_to_id_bus,
     output wire data_sram_en,
     output wire [3:0] data_sram_wen,
@@ -159,10 +159,16 @@ module EX(
         ex_result
     };
     
-    
+    wire [1:0] choose_b;
+    wire [1:0] choose_a;
+    wire inst_is_lbu,inst_is_lb,inst_is_lh,inst_is_lhu;
     assign ex_to_mem_bus = {
+        choose_b,
+        choose_a,
         inst_is_lb,
         inst_is_lbu,
+        inst_is_lh,
+        inst_is_lhu,
         ex_pc,          // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39
@@ -172,14 +178,42 @@ module EX(
         ex_result       // 31:0
     };
     
+    wire inst_is_sb, inst_is_sh;
     
+    assign inst_is_sb =  (inst[31:26] == 6'b101000);
+    assign inst_is_sh = (inst[31:26] == 6'b101001);
+    
+    wire [3:0] choose_wen;
+    wire [31:0] choose_data;
+    
+    assign choose_wen = (inst_is_sb & data_ram_en & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b00) ? 4'b0001:
+                         (inst_is_sb & data_ram_en & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b01) ? 4'b0010:
+                         (inst_is_sb & data_ram_en & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b10) ? 4'b0100:
+                         (inst_is_sb & data_ram_en & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b11) ? 4'b1000:
+                         (inst_is_sh & data_ram_en & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b00) ? 4'b0011:
+                         (inst_is_sh & data_ram_en & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b10) ? 4'b1100:
+                         data_ram_wen;
+    
+    assign choose_data = (inst_is_sb & data_ram_en==1'b1 & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b00) ?{4{rf_rdata2[7:0]}}:
+                  (inst_is_sb & data_ram_en==1'b1 & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b01) ?{4{rf_rdata2[7:0]}}:
+                  (inst_is_sb & data_ram_en==1'b1 & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b10) ?{4{rf_rdata2[7:0]}}:
+                  (inst_is_sb & data_ram_en==1'b1 & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b11) ?{4{rf_rdata2[7:0]}}:
+                  (inst_is_sh & data_ram_en==1'b1 & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b00) ?{2{rf_rdata2[15:0]}}:
+                  (inst_is_sh & data_ram_en==1'b1 & data_ram_wen == 4'b1111 & ex_result[1:0] == 2'b10) ?{2{rf_rdata2[15:0]}}:
+                   rf_rdata2;
     assign  data_sram_en = data_ram_en;
-    assign  data_sram_wen = data_ram_wen;
-    assign  data_sram_addr =  ex_result;
-    assign  data_sram_wdata = rf_rdata2  ;
+    assign  data_sram_wen = choose_wen;
+    assign  data_sram_addr = ex_result;
+    assign  data_sram_wdata = choose_data  ;
     
     
-    assign inst_is_load =( (inst[31:26] == 6'b10_0011)|(inst[31:26] == 6'b10_0000)|(inst[31:26] == 6'b10_0100) )? 1'b1 : 1'b0;
+    
+    assign inst_is_load =( (inst[31:26] == 6'b10_0011)|(inst[31:26] == 6'b10_0000)|(inst[31:26] == 6'b10_0100)|(inst[31:26] == 6'b10_0001)|(inst[31:26] == 6'b10_0101))? 1'b1 : 1'b0;
+    assign choose_b = ex_result[1:0];
+    assign choose_a = ex_result[1:0];
     assign inst_is_lb   = (inst[31:26] == 6'b10_0000) ? 1'b1 : 1'b0;
     assign inst_is_lbu   = (inst[31:26] == 6'b10_0100) ? 1'b1 : 1'b0;    
+    assign inst_is_lh   = (inst[31:26] == 6'b10_0001) ? 1'b1 : 1'b0;
+    assign inst_is_lhu   = (inst[31:26] == 6'b10_0101) ? 1'b1 : 1'b0;   
+    
 endmodule

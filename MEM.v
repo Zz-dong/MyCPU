@@ -4,7 +4,7 @@ module MEM(
     input wire rst,
     // input wire flush,
     input wire [`StallBus-1:0] stall,
-    input wire [`EX_TO_MEM_WD-1+2:0] ex_to_mem_bus,
+    input wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
     input wire [31:0] data_sram_rdata,
     input wire inst_is_lb,
     input wire inst_is_lbu,
@@ -21,7 +21,7 @@ module MEM(
     assign {mem_whilo_e , mem_hi_rdata , mem_lo_rdata }=  ex_to_mem_hilo;
     
     
-    reg [`EX_TO_MEM_WD-1+2:0] ex_to_mem_bus_r;
+    reg [`EX_TO_MEM_WD-1:0] ex_to_mem_bus_r;
     reg [64:0] mem_to_wb_hilo_r;
     
     always @ (posedge clk) begin
@@ -54,10 +54,17 @@ module MEM(
     wire [31:0] ex_result;
     wire [31:0] mem_result;
     
-    wire inst_is_lb,inst_is_lbu;
+    wire inst_is_lb,inst_is_lbu,inst_is_lh,inst_is_lhu;
+    wire [1:0] choose_b;
+    wire [1:0] choose_a;
+    
     assign {
+        choose_b,
+        choose_a,
         inst_is_lb,
         inst_is_lbu,
+        inst_is_lh,
+        inst_is_lhu,
         mem_pc,         // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39
@@ -66,12 +73,50 @@ module MEM(
         rf_waddr,       // 36:32
         ex_result       // 31:0
     } =  ex_to_mem_bus_r;
-
+    
+    wire [31:0] yituo;
+    wire [31:0] ertuo;
+    wire [31:0] santuo;
+    wire [31:0] situo;
+    wire [31:0] lingyituo;
+    wire [31:0] lingertuo;
+    wire [31:0] lingsantuo;
+    wire [31:0] lingsituo;
+    wire [31:0] tuo;
+    wire [31:0] tuo1;
+    wire [31:0] tuo2;
+    wire [31:0] tuo3;
+    
+    assign yituo = {{24{data_sram_rdata [7]}},data_sram_rdata[7:0]};
+    assign ertuo = {{24{data_sram_rdata [15]}},data_sram_rdata[15:8]};
+    assign santuo = {{24{data_sram_rdata [23]}},data_sram_rdata[23:16]};
+    assign situo = {{24{data_sram_rdata [31]}},data_sram_rdata[31:24]};
+    assign lingyituo = {24'b0,data_sram_rdata[7:0]};
+    assign lingertuo = {24'b0,data_sram_rdata[15:8]};
+    assign lingsantuo = {24'b0,data_sram_rdata[23:16]};
+    assign lingsituo = {24'b0,data_sram_rdata[31:24]};
+    assign tuo = { {16{data_sram_rdata[15]}},data_sram_rdata[15:0]};
+    assign tuo1 = { {16{data_sram_rdata[31]}},data_sram_rdata[31:16]};
+    assign tuo2 = { 16'b0,data_sram_rdata[15:0]};
+    assign tuo3 = { 16'b0,data_sram_rdata[31:16]};    
 
     assign rf_wdata = sel_rf_res ? mem_result  :
-                      (data_ram_en & (data_ram_wen == 4'b0000)) ? data_sram_rdata :
-                      inst_is_lb ?  { {24{ data_sram_rdata [8]}},data_sram_rdata[7:0]} :
-                      inst_is_lbu ? {24'b0,data_sram_rdata [7:0]} : ex_result;
+                       inst_is_lb ? (choose_b == 2'b00 ? yituo:
+                                     choose_b == 2'b01 ? ertuo:
+                                     choose_b == 2'b10 ? santuo:
+                                     situo
+                                    ):
+                       inst_is_lbu ? (choose_b == 2'b00 ? lingyituo:
+                                      choose_b == 2'b01 ? lingertuo:
+                                      choose_b == 2'b10 ? lingsantuo:
+                                      lingsituo
+                       ) :
+                       inst_is_lh ? (choose_a ==2'b00 ? tuo:
+                                       tuo1):
+                       inst_is_lhu ? (choose_a ==2'b00 ? tuo2:
+                                       tuo3):           
+                       (data_ram_en & (data_ram_wen == 4'b0000)) ? data_sram_rdata :
+                       ex_result;
     
     assign mem_to_id_bus = {
         rf_we,
