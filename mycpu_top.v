@@ -1,4 +1,4 @@
-`include "lib/defines.vh"
+`include "defines.vh"
 module mycpu_top(
     input wire clk,
     input wire resetn,
@@ -21,10 +21,9 @@ module mycpu_top(
     output wire [4:0] debug_wb_rf_wnum,
     output wire [31:0] debug_wb_rf_wdata 
 );
-
-    wire [31:0] inst_sram_addr_v, data_sram_addr_v;
-
-    mycpu_core u_mycpu_core(
+       wire [31:0] inst_sram_addr_v, data_sram_addr_v;
+        
+       mycpu_core u_mycpu_core(
     	.clk               (clk               ),
         .rst               (~resetn           ),
         .int               (ext_int           ),
@@ -43,7 +42,6 @@ module mycpu_top(
         .debug_wb_rf_wnum  (debug_wb_rf_wnum  ),
         .debug_wb_rf_wdata (debug_wb_rf_wdata )
     );
-
     mmu u0_mmu(
     	.addr_i (inst_sram_addr_v ),
         .addr_o (inst_sram_addr   )
@@ -53,8 +51,6 @@ module mycpu_top(
     	.addr_i (data_sram_addr_v ),
         .addr_o (data_sram_addr   )
     );
-    
-    
-    
+
     
 endmodule 

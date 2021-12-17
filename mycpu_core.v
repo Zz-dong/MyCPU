@@ -1,4 +1,4 @@
-`include "lib/defines.vh"
+`include "defines.vh"
 module mycpu_core(
     input wire clk,
     input wire rst,
@@ -24,7 +24,7 @@ module mycpu_core(
     wire [`IF_TO_ID_WD-1:0] if_to_id_bus;
     wire [`ID_TO_EX_WD-1:0] id_to_ex_bus;
     wire [`EX_TO_ID_WD-1:0] ex_to_id_bus;
-    wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus;
+    wire [`EX_TO_MEM_WD-1+2:0] ex_to_mem_bus;
     wire [`MEM_TO_ID_WD-1:0] mem_to_id_bus;
     wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus;
     wire [`WB_TO_ID_WD-1:0] wb_to_id_bus;
@@ -35,7 +35,22 @@ module mycpu_core(
     wire stallreq_id;
     wire inst_load;
     
-
+    wire [31:0] hi_rdata;
+    wire [31:0] lo_rdata;
+    wire [31:0] hi_data;
+    wire [31:0] lo_data;
+    wire hilo_e;
+    wire [64:0] ex_hilo;
+    wire [64:0] mem_to_wb_hilo;
+    wire [64:0] wb_to_ex_hilo;
+    wire [64:0] mem_to_ex_hilo;
+    wire stallreq_ex,start_i;//,ready_o;
+    wire [31:0] alu_src1;
+    wire [31:0] alu_src2;
+    wire [63:0] result_o;
+    wire inst_lb;
+    wire inst_lbu;
+    
     IF u_IF(
     	.clk             (clk             ),
         .rst             (rst             ),
@@ -46,6 +61,7 @@ module mycpu_core(
         .inst_sram_wen   (inst_sram_wen   ),
         .inst_sram_addr  (inst_sram_addr  ),
         .inst_sram_wdata (inst_sram_wdata )
+        //.ready_if        (ready_o)   
     );
     
 
@@ -62,7 +78,14 @@ module mycpu_core(
         .wb_to_rf_bus    (wb_to_rf_bus    ),
         .id_to_ex_bus    (id_to_ex_bus    ),
         .br_bus          (br_bus          ),
-        .inst_is_load    (inst_load       )
+        .inst_is_load    (inst_load       ),
+        .hi_rdata        (hi_rdata        ),
+        .lo_rdata        (lo_rdata        ),
+        .hilo_e          (hilo_e          ),
+        .hi_data         (hi_data         ),
+        .lo_data         (lo_data         ),
+        .mem_to_ex_hilo  (mem_to_ex_hilo  ),
+        .wb_to_ex_hilo   (wb_to_ex_hilo   )  
     );
 
     EX u_EX(
@@ -76,7 +99,20 @@ module mycpu_core(
         .data_sram_wen   (data_sram_wen   ),
         .data_sram_addr  (data_sram_addr  ),
         .data_sram_wdata (data_sram_wdata ),
-        .inst_is_load    (inst_load       )
+        .inst_is_load    (inst_load       ),
+       // .inst_is_lb      (inst_lb         ), 
+      //  .inst_is_lbu     (inst_lbu        ),               
+        .ex_hilo         (ex_hilo         ),
+        .stallreq_ex     (stallreq_ex     ),
+        .start_i         (start_i         ),
+        .signed_div_i    (signed_div_i    ),
+        .alu_src1        (alu_src1       ),
+        .alu_src2        (alu_src2       ),
+        .result_o        (result_o        ),
+        .ready_o         (ready_o         ),
+        .hi_data         (hi_data         ),
+        .lo_data         (lo_data         )
+
     );
 
     MEM u_MEM(
@@ -86,7 +122,12 @@ module mycpu_core(
         .ex_to_mem_bus   (ex_to_mem_bus   ),
         .mem_to_id_bus   (mem_to_id_bus   ),
         .data_sram_rdata (data_sram_rdata ),
-        .mem_to_wb_bus   (mem_to_wb_bus   )
+        .mem_to_wb_bus   (mem_to_wb_bus   ),
+        .ex_to_mem_hilo  (ex_hilo         ),
+        .mem_to_wb_hilo  (mem_to_wb_hilo  ),
+        .mem_to_ex_hilo  (mem_to_ex_hilo  )
+      // .inst_is_lb      (inst_lb         ), 
+       //.inst_is_lbu     (inst_lbu        )
     );
     
     WB u_WB(
@@ -99,13 +140,22 @@ module mycpu_core(
         .debug_wb_pc       (debug_wb_pc       ),
         .debug_wb_rf_wen   (debug_wb_rf_wen   ),
         .debug_wb_rf_wnum  (debug_wb_rf_wnum  ),
-        .debug_wb_rf_wdata (debug_wb_rf_wdata )
+        .debug_wb_rf_wdata (debug_wb_rf_wdata ),
+        .mem_to_wb_hilo    (mem_to_wb_hilo    ),
+        .wb_to_ex_hilo     (wb_to_ex_hilo     ),
+        .hi_rdata          (hi_rdata          ),
+        .lo_rdata          (lo_rdata          ),
+        .hilo_e            (hilo_e            )
     );
 
     CTRL u_CTRL(
     	.rst   (rst   ),
     	.stallreq_from_id (stallreq_id),
+    	.stallreq_from_ex (stallreq_ex),
         .stall (stall )
     );
+
+
+    
     
 endmodule

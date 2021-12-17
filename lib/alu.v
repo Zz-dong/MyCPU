@@ -18,7 +18,7 @@ module alu(
     wire op_srl;
     wire op_sra;
     wire op_lui;
-
+    
     assign {op_add, op_sub, op_slt, op_sltu,
             op_and, op_nor, op_or, op_xor,
             op_sll, op_srl, op_sra, op_lui} = alu_control;

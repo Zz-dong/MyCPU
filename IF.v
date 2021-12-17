@@ -1,4 +1,4 @@
-`include "lib/defines.vh"
+`include "defines.vh"
 module IF(
     input wire clk,
     input wire rst,
@@ -8,9 +8,8 @@ module IF(
     // input wire [31:0] new_pc,
 
     input wire [`BR_WD-1:0] br_bus,
-
     output wire [`IF_TO_ID_WD-1:0] if_to_id_bus,
-
+    input wire ready_if,
     output wire inst_sram_en,
     output wire [3:0] inst_sram_wen,
     output wire [31:0] inst_sram_addr,
@@ -45,18 +44,14 @@ module IF(
             ce_reg <= 1'b1;
         end
     end
-
-
     assign next_pc = br_e ? br_addr 
                    : pc_reg + 32'h4;
 
     
     assign inst_sram_en = ce_reg;
     assign inst_sram_wen = 4'b0;
-    assign inst_sram_addr = pc_reg;
+    assign inst_sram_addr = (stall[0]==1'b1) ? pc_reg-4 :pc_reg;
     assign inst_sram_wdata = 32'b0;
-    
-    
     assign if_to_id_bus = {
         ce_reg,
         pc_reg

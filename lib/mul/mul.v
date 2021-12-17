@@ -5,7 +5,6 @@ module mul (
   input wire [31:0] ina,
   input wire [31:0] inb,
   output wire signed [63:0] result
-
 );
   reg one_mul_signed;
   reg [31:0] one_ina;
