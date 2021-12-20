@@ -95,12 +95,21 @@ module EX(
     //wire [31:0] alu_src1, alu_src2;
     wire [31:0] alu_result, ex_result;
     
+    wire[1:0] sa;
+    wire inst_is_lsa;
+    assign sa = inst[7:6];
+    assign inst_is_lsa = (inst[31:26] == 6'b01_1100 & inst[5:0] == 6'b11_0111);
+    wire[2:0] sajia;
+    assign sajia = sa + 1'b1;
+    
     assign alu_src1 = sel_alu_src1[1] ? ex_pc :
-                      sel_alu_src1[2] ? sa_zero_extend : rf_rdata1;
+                      sel_alu_src1[2] ? sa_zero_extend : inst_is_lsa ? (rf_rdata1<<sajia) :rf_rdata1;
 
     assign alu_src2 = sel_alu_src2[1] ? imm_sign_extend :
                       sel_alu_src2[2] ? 32'd8 :
                       sel_alu_src2[3] ? imm_zero_extend : rf_rdata2;
+    
+    
     
     alu u_alu(
     	.alu_control (alu_op ),
